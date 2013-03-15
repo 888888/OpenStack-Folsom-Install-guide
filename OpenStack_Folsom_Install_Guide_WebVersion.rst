@@ -165,7 +165,7 @@ Openstack Folsom 发布好久了，但由于新的组件Quantum的加入，以�
    service keystone restart
    keystone-manage db_sync
 
-* 使用 `自动化脚本 <https://github.com/888888/OpenStack-Folsom-Install-guide/tree/GRE/2NICs/Keystone_Scripts>`创建keystone用户、服务、服务端点。为了简化，这里只创建admin一个用户，请不要修改此用户密码。 
+* 使用 `自动化脚本 <https://github.com/888888/OpenStack-Folsom-Install-guide/tree/GRE/2NICs/Keystone_Scripts>`_ 创建keystone用户、服务、服务端点。为了简化，这里只创建admin一个用户，请不要修改此用户密码。 
 
     bash keystone_basic.sh
     执行一次，否则会创建多个service
@@ -778,7 +778,7 @@ Openstack Folsom 发布好久了，但由于新的组件Quantum的加入，以�
 | udp         | 1         | 65535   | 0.0.0.0/0 |              |
 +-------------+-----------+---------+-----------+--------------+
 
-* 使用脚本 `quantum.sh <https://raw.github.com/888888/OpenStack-Folsom-Install-guide/GRE/2NICs/Keystone_Scripts/quantum.sh>` 为admin创建相关的网络，即虚拟机内网和外网
+* 使用脚本 `quantum.sh <https://raw.github.com/888888/OpenStack-Folsom-Install-guide/GRE/2NICs/Keystone_Scripts/quantum.sh>`_ 为admin创建相关的网络，即虚拟机内网和外网
 * 查看创建好的网络
 
  root@hp4u:~# quantum net-list
