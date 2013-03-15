@@ -1,8 +1,8 @@
 ==========================================================
-  OpenStack Folsom Install Guide
+  OpenStack Folsom 安装指南 (双网卡版本)
 ==========================================================
 
-:Version: 3.0
+:Version: 3.1
 :Source: https://github.com/mseknibilel/OpenStack-Folsom-Install-guide
 :Keywords: Multi node OpenStack, Folsom, Quantum, Nova, Keystone, Glance, Horizon, Cinder, OpenVSwitch, KVM, Ubuntu Server 12.10 (64 bits).
 
@@ -48,7 +48,7 @@ Table of Contents
 
 OpenStack Folsom Install Guide is an easy and tested way to create your own OpenStack plateform. 
 
-Version 3.0
+Version 3.1
 
 Status: Testing
 
