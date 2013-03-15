@@ -1,10 +1,12 @@
-OpenStack-Folsom-Install-guide
+OpenStack-Folsom-安装指南
 ==============================
 
-You want to install OpenStack Folsom with Quantum and you don't know how ?
-This is what you are looking for !
+本指南主要参考: 
+https://github.com/mseknibilel/OpenStack-Folsom-Install-guide
 
-It's easy, simple and tested. Can't wait? Go check it by yourself: 
+及官方文档:
+
+http://docs.openstack.org/folsom/basic-install/content/basic-install_intro.html
 
 
 ![ScreenShot](http://i.imgur.com/hyeAT.jpg)
