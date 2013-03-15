@@ -768,8 +768,8 @@ Openstack Folsom 发布好久了，但由于新的组件Quantum的加入，以�
 * 使用 <http://192.168.10.51/horizon> 管理虚拟机
 * 编辑安全组，允许所有协议,tcp,udp,icmp
 
- root@sm1u07:~# nova secgroup-list-rules default
- Please enter password for encrypted keyring: 
+root@sm1u07:~# nova secgroup-list-rules default
+Please enter password for encrypted keyring: 
 +-------------+-----------+---------+-----------+--------------+
 | IP Protocol | From Port | To Port | IP Range  | Source Group |
 +-------------+-----------+---------+-----------+--------------+
@@ -781,7 +781,7 @@ Openstack Folsom 发布好久了，但由于新的组件Quantum的加入，以�
 * 使用脚本 `quantum.sh <https://raw.github.com/888888/OpenStack-Folsom-Install-guide/GRE/2NICs/Keystone_Scripts/quantum.sh>`_ 为admin创建相关的网络，即虚拟机内网和外网
 * 查看创建好的网络
 
- root@hp4u:~# quantum net-list
+root@hp4u:~# quantum net-list
 +--------------------------------------+-----------+--------------------------------------+
 | id                                   | name      | subnets                              |
 +--------------------------------------+-----------+--------------------------------------+
@@ -789,7 +789,7 @@ Openstack Folsom 发布好久了，但由于新的组件Quantum的加入，以�
 | d402e168-cbda-4345-8ffa-015e6a1c4aa1 | admin-net | 8ef3c4dd-a265-421c-afa2-6cff28ae2c74 |
 +--------------------------------------+-----------+--------------------------------------+
 
- root@hp4u:~# quantum router-list
+root@hp4u:~# quantum router-list
 +--------------------------------------+-----------------+--------------------------------------------------------+
 | id                                   | name            | external_gateway_info                                  |
 +--------------------------------------+-----------------+--------------------------------------------------------+
@@ -798,17 +798,17 @@ Openstack Folsom 发布好久了，但由于新的组件Quantum的加入，以�
 
 * 修改 /etc/quantum/l3_agent.ini :
 
-     gateway_external_network_id = 14dbb282-c74a-4784-bfc3-351f7ca3d034
-     router_id = 623b68f4-967a-4028-9a92-dc5a7d3e16e8
+    gateway_external_network_id = 14dbb282-c74a-4784-bfc3-351f7ca3d034
+    router_id = 623b68f4-967a-4028-9a92-dc5a7d3e16e8
     
-     service quantum-l3-agent restart  
+    service quantum-l3-agent restart  
      
 * 使用控制面板创建一个虚拟机，并记录vm-uuid，勇冠vm-uuid获取vm的端口id
 
-      quantum port-list -- --device_id <vm-uuid>
+    quantum port-list -- --device_id <vm-uuid>
     
 * 目前horizon不支持quantum的floatingip操作,通过quantum 命令行为vm 分配floatingip,
 
-      quantum floatingip-create --port_id <port_id> <ext_net_id>
+    quantum floatingip-create --port_id <port_id> <ext_net_id>
   
 * 大功告成，现在你可以去dashboard中用vnc登录vm，测试一下各个网络是否通畅
