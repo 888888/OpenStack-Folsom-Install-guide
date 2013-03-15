@@ -69,11 +69,7 @@ Openstack Folsom 发布好久了，但由于新的组件Quantum的加入，以�
    
 * 因为要更新和下载的软件比较多，可以在空闲时间一次更新系统并提前安装所需要软件，以后只需要配置就行了:
    
-   apt-get update && apt-get dist-upgrade -y && apt-get update -y && apt-get dist-upgrade -y \
-    && apt-get install -y rabbitmq-server ntp vlan bridge-utils keystone curl openssl glance \
-     quantum-server quantum-plugin-openvswitch nova-api nova-cert novnc nova-consoleauth \
-      nova-scheduler nova-novncproxy cinder-api cinder-scheduler cinder-volume iscsitarget \
-       open-iscsi iscsitarget-dkms openstack-dashboard memcached python-mysqldb mysql-server 
+   apt-get update && apt-get dist-upgrade -y && apt-get update -y && apt-get dist-upgrade -y && apt-get install -y rabbitmq-server ntp vlan bridge-utils keystone curl openssl glance quantum-server quantum-plugin-openvswitch nova-api nova-cert novnc nova-consoleauth nova-scheduler nova-novncproxy cinder-api cinder-scheduler cinder-volume iscsitarget open-iscsi iscsitarget-dkms openstack-dashboard memcached python-mysqldb mysql-server 
 
 2.2.配置网卡
 ------------
@@ -450,9 +446,7 @@ Openstack Folsom 发布好久了，但由于新的组件Quantum的加入，以�
    apt-get dist-upgrade
    
    快速：
-   apt-get update && apt-get dist-upgrade -y && apt-get install -y ntp vlan bridge-utils \
-    openvswitch-switch openvswitch-datapath-dkms quantum-plugin-openvswitch-agent \
-     quantum-dhcp-agent quantum-l3-agent
+   apt-get update && apt-get dist-upgrade -y && apt-get install -y ntp vlan bridge-utils openvswitch-switch openvswitch-datapath-dkms quantum-plugin-openvswitch-agent quantum-dhcp-agent quantum-l3-agent
    
 
 * 安装配置基本服务ntp,vlan,bridge-utils::
@@ -567,9 +561,7 @@ Openstack Folsom 发布好久了，但由于新的组件Quantum的加入，以�
    apt-get dist-upgrade
 
    快速：
-   apt-get update && apt-get dist-upgrade -y && apt-get install -y ntp vlan bridge-utils \
-    cpu-checker kvm libvirt-bin pm-utils openvswitch-switch openvswitch-datapath-dkms \
-     quantum-plugin-openvswitch-agent nova-compute-kvm
+   apt-get update && apt-get dist-upgrade -y && apt-get install -y ntp vlan bridge-utils cpu-checker kvm libvirt-bin pm-utils openvswitch-switch openvswitch-datapath-dkms  quantum-plugin-openvswitch-agent nova-compute-kvm
 
 * 安装 ntp vlan bridge-utils::
 
