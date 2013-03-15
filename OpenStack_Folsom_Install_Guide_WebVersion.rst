@@ -107,7 +107,7 @@ Openstack Folsom 发布好久了，但由于新的组件Quantum的加入，以�
    service mysql restart
 
 * 为了简化安装，以后所有连接mysql服务均使用 root:password登录,将root权限更改为所有主机可以访问(默认只能本机访问)
-  
+
    mysql -uroot -ppassword
    use mysql;
    update user set host='%' where user='root' and host='localhost';
@@ -167,10 +167,9 @@ Openstack Folsom 发布好久了，但由于新的组件Quantum的加入，以�
 
 * 使用 `自动化脚本 <https://github.com/888888/OpenStack-Folsom-Install-guide/tree/GRE/2NICs/Keystone_Scripts>`创建keystone用户、服务、服务端点。为了简化，这里只创建admin一个用户，请不要修改此用户密码。 
 
-
-   bash keystone_basic.sh
-   执行一次，否则会创建多个service
-   bash keystone_endpoints_basic.sh
+    bash keystone_basic.sh
+    执行一次，否则会创建多个service
+    bash keystone_endpoints_basic.sh
 
 * 创建/root/novarc文件，写入以下内容::
 
@@ -196,8 +195,7 @@ Openstack Folsom 发布好久了，但由于新的组件Quantum的加入，以�
 -------------------
 * 安装组件
 
-   apt-get install glance
-
+    apt-get install glance
 
 * 分别修改 /etc/glance/glance-api-paste.ini 和/etc/glance/glance-registry-paste.ini::
 
@@ -445,8 +443,8 @@ Openstack Folsom 发布好久了，但由于新的组件Quantum的加入，以�
    apt-get upgrade
    apt-get dist-upgrade
    
-   快速：
-   apt-get update && apt-get dist-upgrade -y && apt-get install -y ntp vlan bridge-utils openvswitch-switch openvswitch-datapath-dkms quantum-plugin-openvswitch-agent quantum-dhcp-agent quantum-l3-agent
+    快速：
+    apt-get update && apt-get dist-upgrade -y && apt-get install -y ntp vlan bridge-utils openvswitch-switch openvswitch-datapath-dkms quantum-plugin-openvswitch-agent quantum-dhcp-agent quantum-l3-agent
    
 
 * 安装配置基本服务ntp,vlan,bridge-utils::
@@ -561,7 +559,7 @@ Openstack Folsom 发布好久了，但由于新的组件Quantum的加入，以�
    apt-get dist-upgrade
 
    快速：
-   apt-get update && apt-get dist-upgrade -y && apt-get install -y ntp vlan bridge-utils cpu-checker kvm libvirt-bin pm-utils openvswitch-switch openvswitch-datapath-dkms  quantum-plugin-openvswitch-agent nova-compute-kvm
+    apt-get update && apt-get dist-upgrade -y && apt-get install -y ntp vlan bridge-utils cpu-checker kvm libvirt-bin pm-utils openvswitch-switch openvswitch-datapath-dkms  quantum-plugin-openvswitch-agent nova-compute-kvm
 
 * 安装 ntp vlan bridge-utils::
 
@@ -767,36 +765,36 @@ Openstack Folsom 发布好久了，但由于新的组件Quantum的加入，以�
 5. 创建虚拟机
 ============
 
-* 使用 http://192.168.10.51/horizon 管理虚拟机
+* 使用 <http://192.168.10.51/horizon> 管理虚拟机
 * 编辑安全组，允许所有协议,tcp,udp,icmp
 
-    root@sm1u07:~# nova secgroup-list-rules default
-    Please enter password for encrypted keyring: 
-    +-------------+-----------+---------+-----------+--------------+
-    | IP Protocol | From Port | To Port | IP Range  | Source Group |
-    +-------------+-----------+---------+-----------+--------------+
-    | icmp        | -1        | 255     | 0.0.0.0/0 |              |
-    | tcp         | 1         | 65535   | 0.0.0.0/0 |              |
-    | udp         | 1         | 65535   | 0.0.0.0/0 |              |
-    +-------------+-----------+---------+-----------+--------------+
+ root@sm1u07:~# nova secgroup-list-rules default
+ Please enter password for encrypted keyring: 
++-------------+-----------+---------+-----------+--------------+
+| IP Protocol | From Port | To Port | IP Range  | Source Group |
++-------------+-----------+---------+-----------+--------------+
+| icmp        | -1        | 255     | 0.0.0.0/0 |              |
+| tcp         | 1         | 65535   | 0.0.0.0/0 |              |
+| udp         | 1         | 65535   | 0.0.0.0/0 |              |
++-------------+-----------+---------+-----------+--------------+
 
 * 使用脚本 `quantum.sh <https://raw.github.com/888888/OpenStack-Folsom-Install-guide/GRE/2NICs/Keystone_Scripts/quantum.sh>` 为admin创建相关的网络，即虚拟机内网和外网
 * 查看创建好的网络
 
-    root@hp4u:~# quantum net-list
-    +--------------------------------------+-----------+--------------------------------------+
-    | id                                   | name      | subnets                              |
-    +--------------------------------------+-----------+--------------------------------------+
-    | 14dbb282-c74a-4784-bfc3-351f7ca3d034 | ext_net   | 95bddb90-84dc-4579-99b8-798a393a3edf |
-    | d402e168-cbda-4345-8ffa-015e6a1c4aa1 | admin-net | 8ef3c4dd-a265-421c-afa2-6cff28ae2c74 |
-    +--------------------------------------+-----------+--------------------------------------+
+ root@hp4u:~# quantum net-list
++--------------------------------------+-----------+--------------------------------------+
+| id                                   | name      | subnets                              |
++--------------------------------------+-----------+--------------------------------------+
+| 14dbb282-c74a-4784-bfc3-351f7ca3d034 | ext_net   | 95bddb90-84dc-4579-99b8-798a393a3edf |
+| d402e168-cbda-4345-8ffa-015e6a1c4aa1 | admin-net | 8ef3c4dd-a265-421c-afa2-6cff28ae2c74 |
++--------------------------------------+-----------+--------------------------------------+
 
-    root@hp4u:~# quantum router-list
-    +--------------------------------------+-----------------+--------------------------------------------------------+
-    | id                                   | name            | external_gateway_info                                  |
-    +--------------------------------------+-----------------+--------------------------------------------------------+
-    | 623b68f4-967a-4028-9a92-dc5a7d3e16e8 | provider-router | {"network_id": "14dbb282-c74a-4784-bfc3-351f7ca3d034"} |
-    +--------------------------------------+-----------------+--------------------------------------------------------+
+ root@hp4u:~# quantum router-list
++--------------------------------------+-----------------+--------------------------------------------------------+
+| id                                   | name            | external_gateway_info                                  |
++--------------------------------------+-----------------+--------------------------------------------------------+
+| 623b68f4-967a-4028-9a92-dc5a7d3e16e8 | provider-router | {"network_id": "14dbb282-c74a-4784-bfc3-351f7ca3d034"} |
++--------------------------------------+-----------------+--------------------------------------------------------+
 
 * 修改 /etc/quantum/l3_agent.ini :
 
@@ -807,10 +805,10 @@ Openstack Folsom 发布好久了，但由于新的组件Quantum的加入，以�
      
 * 使用控制面板创建一个虚拟机，并记录vm-uuid，勇冠vm-uuid获取vm的端口id
 
-     quantum port-list -- --device_id <vm-uuid>
+      quantum port-list -- --device_id <vm-uuid>
     
 * 目前horizon不支持quantum的floatingip操作,通过quantum 命令行为vm 分配floatingip,
 
-  quantum floatingip-create --port_id <port_id> <ext_net_id>
+      quantum floatingip-create --port_id <port_id> <ext_net_id>
   
 * 大功告成，现在你可以去dashboard中用vnc登录vm，测试一下各个网络是否通畅
