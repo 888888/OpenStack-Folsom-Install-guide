@@ -1,30 +1,14 @@
 ==========================================================
-  OpenStack Folsom 双网卡安装指南
+  OpenStack Folsom 双网卡快速安装指南
 ==========================================================
 
-:Version: 3.0
-:Source: https://github.com/mseknibilel/OpenStack-Folsom-Install-guide
-:Keywords: Multi node OpenStack, Folsom, Quantum, Nova, Keystone, Glance, Horizon, Cinder, OpenVSwitch, KVM, Ubuntu Server 12.10 (64 bits).
+Keywords: 多节点安装，双网卡，Multi node OpenStack, Folsom, Quantum, Nova, Keystone, Glance, Horizon, Cinder, OpenVSwitch, KVM, Ubuntu Server 12.10 (64 bits).
 
 Authors
 ==========
 
-Copyright (C) Bilel Msekni <bilel.msekni@telecom-sudparis.eu>
+梁小白 <11315889@qq.com>
 
-Contributors
-==========
-
-=================================================== =======================================================
-
- Roy Sowa <Roy.Sowa@ssc-spc.gc.ca>                  Stephen gran <stephen.gran@guardian.co.uk> 
-
- Dennis E Miyoshi <dennis.miyoshi@hp.com>            Marco Consonni <marco_consonni@hp.com>
-
- Houssem Medhioub <houssem.medhioub@it-sudparis.eu> Djamal Zeghlache <djamal.zeghlache@telecom-sudparis.eu>
-
-=================================================== =======================================================
-
-Wana contribute ? Read the guide, send your contribution and get your name listed ;)
 
 Table of Contents
 =================
@@ -32,8 +16,8 @@ Table of Contents
 ::
 
   0. What is it?
-  1. Requirements
-  2. Controller Node
+  1. 需求说明
+  2. 控制节点
   3. Network Node
   4. Compute Node
   5. Start your first VM
@@ -48,44 +32,53 @@ Table of Contents
 
 OpenStack Folsom Install Guide is an easy and tested way to create your own OpenStack plateform. 
 
-Version 3.0
+Version 3.1
 
 Status: Testing
 
 
-1. Requirements
+1. 需求说明
 ====================
 
 :Node Role: NICs
 :Control Node: eth0 (100.10.10.51), eth1 (192.168.100.51)
-:Network Node: eth0 (100.10.10.52), eth2 (192.168.100.52)
+:Network Node: eth0 (100.10.10.52), eth2 (0.0.0.0)
 :Compute Node: eth0 (100.10.10.53)
 
-**Note 1:** Compute and Controller nodes can be merged into one node.
-
-**Note 2:** If you are not interrested in Quantum, you can also use this guide but you must follow the nova section found `here <https://github.com/mseknibilel/OpenStack-Folsom-Install-guide/blob/master/Tricks%26Ideas/install_nova-network.rst>`_ instead of the one written in this guide.
-
-**Note 3:** This is my current network architecture, you can add as many compute node as you wish.
+**备注 1: ** 本文为双网卡安装Folsom设计,根据官方说明，网络节点最好采用三块网卡控制节点可以和计算节点合二为一.
+**备注 2：** 本文安装指南环境为实现Folsom功能评估，力求简单方便，安全性差，不可用于生产环境。
+**备注 3: ** 本文不适用于虚拟机环境.请使用物理计算机安装.
 
 .. image:: http://i.imgur.com/4D51h.jpg
 
-2. Controller Node
+2. 控制节点
 ===============
 
-2.1. Preparing Ubuntu 12.10
+2.1. 准备 Ubuntu 12.10
 -----------------
+* 控制节点同时承载Cinder服务，安装时请单独创建一个lvm分区给cinder使用::
 
-* After you install Ubuntu 12.10 Server 64bits, Go to the sudo mode and don't leave it until the end of this guide::
+  例如: /dev/sda5
+
+* 以下所有命令均在root权限下完成，所以在装好ubuntu后，请切换到root::
+   启用root用户
+   
+   sudo passwd
+   输入新的root密码
 
    sudo su
 
-* Update your system::
+* 更新系统(依据笔者经验，安装完Folsom环境后最好别再使用dist-upgrade,以免产生些许小问题，如虚拟机获得不了ip等..)::
 
    apt-get update
    apt-get upgrade
    apt-get dist-upgrade
+   
+   **备注 : ** 因为要更新和下载的软件比较多，可以在空闲时间一次安装:
+   
+   apt-get update && apt-get dist-upgrade -y && apt-get update -y && apt-get dist-upgrade -y && apt-get install -y rabbitmq-server ntp vlan bridge-utils keystone curl openssl glance quantum-server quantum-plugin-openvswitch nova-api nova-cert novnc nova-consoleauth nova-scheduler nova-novncproxy cinder-api cinder-scheduler cinder-volume iscsitarget open-iscsi iscsitarget-dkms openstack-dashboard memcached python-mysqldb mysql-server 
 
-2.2.Networking
+2.2.配置网卡
 ------------
  
 * Only one NIC on the controller should be internet connected::
@@ -104,7 +97,7 @@ Status: Testing
    address 100.10.10.51
    netmask 255.255.255.0
 
-* Restart your networking services::
+* 重启 networking services::
    
    service networking restart
 
@@ -115,38 +108,54 @@ Status: Testing
 
    apt-get install mysql-server python-mysqldb
 
-* Configure mysql to accept all incoming requests::
+* 配置Mysql监听所有地址::
 
    sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mysql/my.cnf
    service mysql restart
 
+* 为了简化安装，以后所有连接mysql服务均使用 root:password登录,将root权限更改为所有主机可以访问(默认只能本机访问)
+  
+  mysql -uroot -ppassword
+  
+  use mysql;
+  update user set host='%' where user='root' and host='localhost';
+  flush privileges;
+ 
+* 创建所有必须的数据库::
+  
+  create database keystone;
+  create database nova;
+  create database glance;
+  create database cinder;
+  create database quantum;
+   
 * Install RabbitMQ::
 
    apt-get install rabbitmq-server 
 
-2.4. Node synchronization
+2.4. 节点时间同步
 ------------------
 
-* Install other services::
+* 安装时间服务器,其它节点时间同此服务器同步::
 
    apt-get install ntp
 
-* Configure the NTP server to synchronize between your compute nodes and the controller node::
-   
    sed -i 's/server ntp.ubuntu.com/server ntp.ubuntu.com\nserver 127.127.1.0\nfudge 127.127.1.0 stratum 10/g' /etc/ntp.conf
    service ntp restart  
 
 2.5. Others
 -------------------
-* Install other services::
+* 安装其它服务::
 
    apt-get install vlan bridge-utils
 
-* Enable IP_Forwarding::
+* 允许IP转发::
 
-   nano /etc/sysctl.conf
+   vi /etc/sysctl.conf
    # Uncomment net.ipv4.ip_forward=1, to save you from rebooting, perform the following
    sysctl net.ipv4.ip_forward=1
+   检查一下
+   sysctl -p 
 
 2.6. Keystone
 -------------------
@@ -157,23 +166,17 @@ This is how we install OpenStack's identity service:
 
    apt-get install keystone
 
-* Create a new MySQL database for keystone::
 
-   mysql -u root -p
-   CREATE DATABASE keystone;
-   GRANT ALL ON keystone.* TO 'keystoneUser'@'%' IDENTIFIED BY 'keystonePass';
-   quit;
+* 编辑 /etc/keystone/keystone.conf 数据库连接::
 
-* Adapt the connection attribute in the /etc/keystone/keystone.conf to the new database::
+   connection = mysql://root:password@100.10.10.51/keystone
 
-   connection = mysql://keystoneUser:keystonePass@100.10.10.51/keystone
-
-* Restart the identity service then synchronize the database::
+* 重启keystone并初始化数据库::
 
    service keystone restart
    keystone-manage db_sync
 
-* Fill up the keystone database using the two scripts available in the `Scripts folder <https://github.com/mseknibilel/OpenStack-Folsom-Install-guide/tree/master/Keystone_Scripts>`_ of this git repository. Beware that you MUST comment every part related to Quantum if you don't intend to install it otherwise you will have trouble with your dashboard later::
+* Fill up the keystone database using the two scripts available in the `Scripts folder <https://github.com/888888/OpenStack-Folsom-Install-guide/tree/master/Keystone_Scripts>`_ of this git repository. Beware that you MUST comment every part related to Quantum if you don't intend to install it otherwise you will have trouble with your dashboard later::
 
    #Modify the HOST_IP and HOST_IP_EXT variable before executing the scripts
 
@@ -181,116 +184,87 @@ This is how we install OpenStack's identity service:
    chmod +x keystone_endpoints_basic.sh
 
    ./keystone_basic.sh
+    执行一次，否则会创建多个service
    ./keystone_endpoints_basic.sh
 
-* Create a simple credential file and load it so you won't be bothered later::
+* 创建/root/novarc文件，写入以下内容::
 
-   nano creds
-   #Paste the following:
-   export OS_TENANT_NAME=admin
-   export OS_USERNAME=admin
-   export OS_PASSWORD=admin_pass
-   export OS_AUTH_URL="http://192.168.100.51:5000/v2.0/"
-   # Load it:
-   source creds
+    export OS_TENANT_NAME=admin
+    export OS_TENANT_ID=c7fb80d964a24ab1bc0fd370696c804e
+    export OS_USERNAME=admin
+    export OS_PASSWORD=password
+    export OS_AUTH_URL="http://127.0.0.1:35357/v2.0"
+    export OS_REGION_NAME=RegionOne
+    export OS_IDENTITY_API_VERSION=2.0
+    export SERVICE_TOKEN=ADMIN
+    export SERVICE_ENDPOINT="http://127.0.0.1:35357/v2.0"
+    
+    各项值请根据实际情况替换
+    keystone tenant-list
+    将获取的tenant_id替换到novarc
+    
+    source /root/novarc
+    echo "source /root/novarc" >> ~/.bashrc
 
-* To test Keystone, we use a simple curl request::
-
-   apt-get install curl openssl
-   curl http://192.168.100.51:35357/v2.0/endpoints -H 'x-auth-token: ADMIN'
 
 2.7. Glance
 -------------------
 
-* After installing Keystone, we continue with installing image storage service a.k.a Glance::
-
    apt-get install glance
 
-* Create a new MySQL database for Glance::
 
-   mysql -u root -p
-   CREATE DATABASE glance;
-   GRANT ALL ON glance.* TO 'glanceUser'@'%' IDENTIFIED BY 'glancePass';
-   quit;
-
-* Update /etc/glance/glance-api-paste.ini with::
+* 分别修改 /etc/glance/glance-api-paste.ini 和/etc/glance/glance-registry-paste.ini::
 
    [filter:authtoken]
    paste.filter_factory = keystone.middleware.auth_token:filter_factory
    auth_host = 100.10.10.51
    auth_port = 35357
    auth_protocol = http
-   admin_tenant_name = service
-   admin_user = glance
-   admin_password = service_pass
+   admin_tenant_name = admin
+   admin_user = admin
+   admin_password = password
 
-* Update the /etc/glance/glance-registry-paste.ini with::
+* 分别修改 /etc/glance/glance-api.conf 和/etc/glance/glance-registry.conf ::
 
-   [filter:authtoken]
-   paste.filter_factory = keystone.middleware.auth_token:filter_factory
-   auth_host = 100.10.10.51
-   auth_port = 35357
-   auth_protocol = http
-   admin_tenant_name = service
-   admin_user = glance
-   admin_password = service_pass
-
-* Update /etc/glance/glance-api.conf with::
-
-   sql_connection = mysql://glanceUser:glancePass@100.10.10.51/glance
-
-* And::
+   sql_connection = mysql://root:password@100.10.10.51/glance
 
    [paste_deploy]
    flavor = keystone
 
-* Update the /etc/glance/glance-registry.conf with::
 
-   sql_connection = mysql://glanceUser:glancePass@100.10.10.51/glance
-
-* And::
-
-   [paste_deploy]
-   flavor = keystone
-
-* Restart the glance-api and glance-registry services::
+* 重启glance服务并同步glance数据库::
 
    service glance-api restart; service glance-registry restart
 
-* Synchronize the glance database::
-
    glance-manage db_sync
+   
+* 测试glance 服务，不输出任何结果代表成功::
 
-* To test Glance's well installation, we upload a new image to the store. Start by downloading the cirros cloud image to your node and then uploading it to Glance::
+    glance index
+    
+* 上传个镜像::
 
    mkdir images
    cd images
    wget https://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-disk.img
    glance image-create --name myFirstImage --is-public true --container-format bare --disk-format qcow2 < cirros-0.3.0-x86_64-disk.img
 
-* Now list the images to see what you have just uploaded::
+* 再查看一下::
 
    glance image-list
 
 2.8. Quantum
 -------------------
 
-* Install the Quantum server and the OpenVSwitch package collection::
+* 安装组件::
 
    apt-get install quantum-server quantum-plugin-openvswitch
 
-* Create a database::
 
-   mysql -u root -p
-   CREATE DATABASE quantum;
-   GRANT ALL ON quantum.* TO 'quantumUser'@'%' IDENTIFIED BY 'quantumPass';
-   quit; 
+* 修改 /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini,移动后文件最后，有模板:: 
 
-* Edit the OVS plugin configuration file /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini with:: 
-
-   #Under the database section
    [DATABASE]
-   sql_connection = mysql://quantumUser:quantumPass@100.10.10.51/quantum
+   sql_connection = mysql://root:password@100.10.10.51/quantum
 
    #Under the OVS section
    [OVS]
@@ -298,45 +272,39 @@ This is how we install OpenStack's identity service:
    tunnel_id_ranges = 1:1000
    enable_tunneling = True
 
-* Edit /etc/quantum/api-paste.ini ::
+* 修改 /etc/quantum/api-paste.ini ::
 
    [filter:authtoken]
    paste.filter_factory = keystone.middleware.auth_token:filter_factory
    auth_host = 100.10.10.51
    auth_port = 35357
    auth_protocol = http
-   admin_tenant_name = service
-   admin_user = quantum
-   admin_password = service_pass
+   admin_tenant_name = admin
+   admin_user = admin
+   admin_password = password
 
-* Restart the quantum server::
+* 重启 quantum server::
 
    service quantum-server restart
 
 2.9. Nova
 -------------------
 
-* Start by installing nova components::
+* 安装组件::
 
    apt-get install -y nova-api nova-cert novnc nova-consoleauth nova-scheduler nova-novncproxy
 
-* Prepare a Mysql database for Nova::
 
-   mysql -u root -p
-   CREATE DATABASE nova;
-   GRANT ALL ON nova.* TO 'novaUser'@'%' IDENTIFIED BY 'novaPass';
-   quit;
-
-* Now modify authtoken section in the /etc/nova/api-paste.ini file to this::
+* 修改 /etc/nova/api-paste.ini ::
 
    [filter:authtoken]
    paste.filter_factory = keystone.middleware.auth_token:filter_factory
    auth_host = 100.10.10.51
    auth_port = 35357
    auth_protocol = http
-   admin_tenant_name = service
-   admin_user = nova
-   admin_password = service_pass
+   admin_tenant_name = admin
+   admin_user = admin
+   admin_password = password
    signing_dirname = /tmp/keystone-signing-nova
 
 * Modify the /etc/nova/nova.conf like this::
@@ -380,9 +348,9 @@ This is how we install OpenStack's identity service:
    network_api_class=nova.network.quantumv2.api.API
    quantum_url=http://100.10.10.51:9696
    quantum_auth_strategy=keystone
-   quantum_admin_tenant_name=service
-   quantum_admin_username=quantum
-   quantum_admin_password=service_pass
+   quantum_admin_tenant_name=admin
+   quantum_admin_username=admin
+   quantum_admin_password=password
    quantum_admin_auth_url=http://100.10.10.51:35357/v2.0
    libvirt_vif_driver=nova.virt.libvirt.vif.LibvirtHybridOVSBridgeDriver
    linuxnet_interface_driver=nova.network.linux_net.LinuxOVSInterfaceDriver
@@ -395,22 +363,28 @@ This is how we install OpenStack's identity service:
    volume_api_class=nova.volume.cinder.API
    osapi_volume_listen_port=5900
 
-* Synchronize your database::
+* 初始化nova数据库::
 
    nova-manage db sync
 
-* Restart nova-* services::
+* 重启所有nova服务::
 
    cd /etc/init.d/; for i in $( ls nova-* ); do sudo service $i restart; done   
 
-* Check for the smiling faces on nova-* services to confirm your installation::
+* 检查nova服务，有笑脸图标，证明服务正常::
 
    nova-manage service list
+   
+    Binary           Host                                 Zone             Status     State Updated_At
+    nova-cert        sm1u07                               nova             enabled    :-)   2013-03-15 12:08:31
+    nova-consoleauth sm1u07                               nova             enabled    :-)   2013-03-15 12:08:30
+    nova-scheduler   sm1u07                               nova             enabled    :-)   2013-03-15 12:08:30
+   
 
 2.10. Cinder
 -------------------
 
-* Install the required packages::
+* 安装组件::
 
    apt-get install cinder-api cinder-scheduler cinder-volume iscsitarget open-iscsi iscsitarget-dkms
 
@@ -423,65 +397,42 @@ This is how we install OpenStack's identity service:
    service iscsitarget start
    service open-iscsi start
 
-* Prepare a Mysql database for Cinder::
-
-   mysql -u root -p
-   CREATE DATABASE cinder;
-   GRANT ALL ON cinder.* TO 'cinderUser'@'%' IDENTIFIED BY 'cinderPass';
-   quit;
-
 * Configure /etc/cinder/api-paste.ini like the following::
 
    [filter:authtoken]
    paste.filter_factory = keystone.middleware.auth_token:filter_factory
    service_protocol = http
-   service_host = 192.168.100.51
+   service_host = 100.10.10.51
    service_port = 5000
    auth_host = 100.10.10.51
    auth_port = 35357
    auth_protocol = http
-   admin_tenant_name = service
-   admin_user = cinder
-   admin_password = service_pass
+   admin_tenant_name = admin
+   admin_user = password
+   admin_password = password
 
-* Edit the /etc/cinder/cinder.conf to::
+* 修改the /etc/cinder/cinder.conf to::
 
    [DEFAULT]
    rootwrap_config=/etc/cinder/rootwrap.conf
-   sql_connection = mysql://cinderUser:cinderPass@100.10.10.51/cinder
+   sql_connection = mysql://root:password@100.10.10.51/cinder
    api_paste_confg = /etc/cinder/api-paste.ini
    iscsi_helper=ietadm
    volume_name_template = volume-%s
    volume_group = cinder-volumes
    verbose = True
    auth_strategy = keystone
-   #osapi_volume_listen_port=5900
 
-* Then, synchronize your database::
+* 初始化cinder数据库::
 
    cinder-manage db sync
 
-* Finally, don't forget to create a volumegroup and name it cinder-volumes::
 
-   dd if=/dev/zero of=cinder-volumes bs=1 count=0 seek=2G
-   losetup /dev/loop2 cinder-volumes
-   fdisk /dev/loop2
-   #Type in the followings:
-   n
-   p
-   1
-   ENTER
-   ENTER
-   t
-   8e
-   w
+* 创建cinder使用的物理卷及卷组::
 
-* Proceed to create the physical volume then the volume group::
+   pvcreate /dev/sda5
+   vgcreate cinder-volumes /dev/sda5
 
-   pvcreate /dev/loop2
-   vgcreate cinder-volumes /dev/loop2
-
-**Note:** Beware that this volume group gets lost after a system reboot. (Click `Here <https://github.com/mseknibilel/OpenStack-Folsom-Install-guide/blob/master/Tricks%26Ideas/load_volume_group_after_system_reboot.rst>`_ to know how to load it after a reboot) 
 
 * Restart the cinder services::
 
@@ -496,23 +447,12 @@ This is how we install OpenStack's identity service:
    apt-get install openstack-dashboard memcached
 
 
-* If you don't like the OpenStack ubuntu theme, you can disabled it and go back to the default look::
-
-   nano /etc/openstack-dashboard/local_settings.py
-   #Comment these lines
-   #Enable the Ubuntu theme if it is present.
-   #try:
-   #    from ubuntu_theme import *
-   #except ImportError:
-   #    pass
-
 * Reload Apache and memcached::
 
    service apache2 restart; service memcached restart
 
-You can now access your OpenStack **192.168.100.51/horizon** with credentials **admin:admin_pass**.
+现在可以访问Dashboard了 **192.168.100.51/horizon** with credentials **admin:password**.
 
-**Note:** A reboot might be needed for a successful login
 
 3. Network node
 =========================
@@ -525,12 +465,14 @@ You can now access your OpenStack **192.168.100.51/horizon** with credentials **
    apt-get update
    apt-get upgrade
    apt-get dist-upgrade
+   
+   快速：apt-get update && apt-get dist-upgrade -y && apt-get install -y ntp vlan bridge-utils openvswitch-switch openvswitch-datapath-dkms quantum-plugin-openvswitch-agent quantum-dhcp-agent quantum-l3-agent
 
 * Install ntp service::
 
    apt-get install ntp
 
-* Configure the NTP server to follow the controller node::
+* Configure the NTP server to follow the 控制节点::
    
    sed -i 's/server ntp.ubuntu.com/server 100.10.10.51/g' /etc/ntp.conf
    service ntp restart  
@@ -548,10 +490,10 @@ You can now access your OpenStack **192.168.100.51/horizon** with credentials **
 3.2.Networking
 ------------
 
-* Put the internet connected NIC in promisc mode::
+* 网络节点eth1网卡将做为虚拟机与互联网通讯端口，设置网卡为 promisc mode::
    
-   auto eth2
-   iface eth2 inet manual
+   auto eth1
+   iface eth1 inet manual
    up ifconfig $IFACE 0.0.0.0 up
    up ip link set $IFACE promisc on
    down ip link set $IFACE promisc off
@@ -577,7 +519,9 @@ You can now access your OpenStack **192.168.100.51/horizon** with credentials **
    #br-ex is used for accessing internet.
    ovs-vsctl add-br br-ex
    ovs-vsctl br-set-external-id br-ex bridge-id br-ex
-   ovs-vsctl add-port br-ex eth2
+   ovs-vsctl add-port br-ex eth1
+   启动br-ex
+   ip link set br-ex up
 
 3.4. Quantum
 ------------------
@@ -607,10 +551,10 @@ We need to install the l3 agent, dhcp agent and the openVSwitch plugin agent
 
    auth_url = http://100.10.10.51:35357/v2.0
    auth_region = RegionOne
-   admin_tenant_name = service
-   admin_user = quantum
-   admin_password = service_pass
-   metadata_ip = 192.168.100.51
+   admin_tenant_name = admin
+   admin_user = admin
+   admin_password = password
+   metadata_ip = 100.10.10.51
    metadata_port = 8775
    use_namespaces = False
 
@@ -618,11 +562,11 @@ We need to install the l3 agent, dhcp agent and the openVSwitch plugin agent
 
    use_namespaces = False
 
-* Make sure that your rabbitMQ IP in /etc/quantum/quantum.conf is set to the controller node::
-   
+* 修改稿rabbitMQ IP ::
+  
+   vi /etc/quantum/quantum.conf
    rabbit_host = 100.10.10.51
 
-* To get the l3_agent to function properly, you need to undergo a special operation described `here <https://github.com/mseknibilel/OpenStack-Folsom-Install-guide/blob/stable/GRE/Tricks%26Ideas/modify_iptables_manager.rst>`_. 
 
 * Restart all the services::
 
@@ -642,11 +586,13 @@ We need to install the l3 agent, dhcp agent and the openVSwitch plugin agent
    apt-get upgrade
    apt-get dist-upgrade
 
+   快速：apt-get update && apt-get dist-upgrade -y && apt-get install -y ntp vlan bridge-utils cpu-checker kvm libvirt-bin pm-utils openvswitch-switch openvswitch-datapath-dkms quantum-plugin-openvswitch-agent nova-compute-kvm
+
 * Install ntp service::
 
    apt-get install ntp
 
-* Configure the NTP server to follow the controller node::
+* Configure the NTP server to follow the 控制节点::
    
    sed -i 's/server ntp.ubuntu.com/server 100.10.10.51/g' /etc/ntp.conf
    service ntp restart  
@@ -739,7 +685,7 @@ We need to install the l3 agent, dhcp agent and the openVSwitch plugin agent
 
    #Under the database section
    [DATABASE]
-   sql_connection = mysql://quantumUser:quantumPass@100.10.10.51/quantum
+   sql_connection = mysql://root:password@100.10.10.51/quantum
 
    #Under the OVS section
    [OVS]
@@ -750,7 +696,7 @@ We need to install the l3 agent, dhcp agent and the openVSwitch plugin agent
    local_ip = 100.10.10.53
    enable_tunneling = True
 
-* Make sure that your rabbitMQ IP in /etc/quantum/quantum.conf is set to the controller node::
+* Make sure that your rabbitMQ IP in /etc/quantum/quantum.conf is set to the 控制节点::
    
    rabbit_host = 100.10.10.51
 
@@ -772,9 +718,9 @@ We need to install the l3 agent, dhcp agent and the openVSwitch plugin agent
    auth_host = 100.10.10.51
    auth_port = 35357
    auth_protocol = http
-   admin_tenant_name = service
-   admin_user = nova
-   admin_password = service_pass
+   admin_tenant_name = admin
+   admin_user = admin
+   admin_password = password
    signing_dirname = /tmp/keystone-signing-nova
 
 * Edit /etc/nova/nova-compute.conf file ::
@@ -827,9 +773,9 @@ We need to install the l3 agent, dhcp agent and the openVSwitch plugin agent
    network_api_class=nova.network.quantumv2.api.API
    quantum_url=http://100.10.10.51:9696
    quantum_auth_strategy=keystone
-   quantum_admin_tenant_name=service
-   quantum_admin_username=quantum
-   quantum_admin_password=service_pass
+   quantum_admin_tenant_name=admin
+   quantum_admin_username=admin
+   quantum_admin_password=password
    quantum_admin_auth_url=http://100.10.10.51:35357/v2.0
    libvirt_vif_driver=nova.virt.libvirt.vif.LibvirtHybridOVSBridgeDriver
    linuxnet_interface_driver=nova.network.linux_net.LinuxOVSInterfaceDriver
@@ -850,130 +796,41 @@ We need to install the l3 agent, dhcp agent and the openVSwitch plugin agent
 
    nova-manage service list
 
-5. Your First VM
+5. 创建虚拟机
 ============
 
-To start your first VM, we first need to create a new tenant, user, internal and external network. SSH to your controller node and perform the following.
+* 使用http://192.168.10.51/horizon管理虚拟机
+* 编辑安全组，允许所有协议,tcp,udp,icmp
+* 使用脚本quantum.sh 为admin创建相关的网络，即虚拟机内网和外网
+* 查看创建好的网络
 
-* Create a new tenant ::
+  root@hp4u:~# quantum net-list
++--------------------------------------+-----------+--------------------------------------+
+| id                                   | name      | subnets                              |
++--------------------------------------+-----------+--------------------------------------+
+| 14dbb282-c74a-4784-bfc3-351f7ca3d034 | ext_net   | 95bddb90-84dc-4579-99b8-798a393a3edf |
+| d402e168-cbda-4345-8ffa-015e6a1c4aa1 | admin-net | 8ef3c4dd-a265-421c-afa2-6cff28ae2c74 |
++--------------------------------------+-----------+--------------------------------------+
+root@hp4u:~# quantum router-list
++--------------------------------------+-----------------+--------------------------------------------------------+
+| id                                   | name            | external_gateway_info                                  |
++--------------------------------------+-----------------+--------------------------------------------------------+
+| 623b68f4-967a-4028-9a92-dc5a7d3e16e8 | provider-router | {"network_id": "14dbb282-c74a-4784-bfc3-351f7ca3d034"} |
++--------------------------------------+-----------------+--------------------------------------------------------+
 
-   keystone tenant-create --name project_one
+* 修改 /etc/quantum/l3_agent.ini :
 
-* Create a new user and assign the member role to it in the new tenant (keystone role-list to get the appropriate id)::
+    gateway_external_network_id = 14dbb282-c74a-4784-bfc3-351f7ca3d034
+    router_id = 623b68f4-967a-4028-9a92-dc5a7d3e16e8
+    
+    service quantum-l3-agent restart  
+* 使用控制面板创建一个虚拟机，并记录vm-uuid，勇冠vm-uuid获取vm的端口id
 
-   keystone user-create --name=user_one --pass=user_one --tenant-id $put_id_of_project_one --email=user_one@domain.com
-   keystone user-role-add --tenant-id $put_id_of_project_one  --user-id $put_id_of_user_one --role-id $put_id_of_member_role
+    quantum port-list -- --device_id <vm-uuid>
+    
+* 通过quantum 命令行为vm 分配floatingip,
 
-* Create a new network for the tenant::
-
-   quantum net-create --tenant-id $put_id_of_project_one net_proj_one 
-
-* Create a new subnet inside the new tenant network::
-
-   quantum subnet-create --tenant-id $put_id_of_project_one net_proj_one 50.50.1.0/24
-
-* Create a router for the new tenant::
-
-   quantum router-create --tenant-id $put_id_of_project_one router_proj_one
-
-* Add the router to the subnet::
-
-   quantum router-interface-add $put_router_proj_one_id_here $put_subnet_id_here
-
-You can now start creating VMs but they will not be accessible from the internet. If you like them to be so, perform the following:
-
-* Create your external network with the tenant id belonging to the service tenant (keystone tenant-list to get the appropriate id) ::
-
-   quantum net-create --tenant-id $put_id_of_service_tenant ext_net --router:external=True
-
-* Go back to the /etc/quantum/l3_agent.ini file and edit it::
-
-   gateway_external_net_id = $id_of_ext_net
-   router_id = $router_proj_one_id
-
-* Restart l3-agent::
-
-   service quantum-l3-agent restart
-
-* Create a subnet containing your floating IPs::
-
-   quantum subnet-create --tenant-id $put_id_of_service_tenant --allocation-pool start=192.168.100.102,end=192.168.100.126 --gateway 192.168.100.1 ext_net 192.168.100.100/24 --enable_dhcp=False
-
-* Set the router for the external network::
-
-   quantum router-gateway-set $put_router_proj_one_id_here $put_id_of_ext_net_here
-
-VMs gain access to the metadata server locally present in the controller node via the external network. To create that necessary connection perform the following:
-
-* Get the IP address of router proj one::
-
-   quantum port-list -- --device_id <router_proj_one_id> --device_owner network:router_gateway
-
-* Add the following route on controller node only::
-
-   route add -net 50.50.1.0/24 gw $router_proj_one_IP
-
-Unfortunatly, you can't use the dashboard to assign floating IPs to VMs so you need to get your hands a bit dirty to give your VM a public IP.
-
-* Start by allocating a floating ip to the project one tenant::
-
-   quantum floatingip-create --tenant-id $put_id_of_project_one ext_net
-
-* pick the id of the port corresponding to your VM::
-
-   quantum port-list
-
-* Associate the floating IP to your VM::
-
-   quantum floatingip-associate $put_id_floating_ip $put_id_vm_port
-
-**This is it !**, You can now ping you VM and start administrating you OpenStack !
-
-I Hope you enjoyed this guide, please if you have any feedbacks, don't hesitate.
-
-6. Licensing
-============
-
-OpenStack Folsom Install Guide by Bilel Msekni is licensed under a Creative Commons Attribution 3.0 Unported License.
-
-.. image:: http://i.imgur.com/4XWrp.png
-To view a copy of this license, visit [ http://creativecommons.org/licenses/by/3.0/deed.en_US ].
-
-7. Contacts
-===========
-
-Bilel Msekni: bilel.msekni@telecom-sudparis.eu
-
-8. Acknowledgment
-=================
-
-This work has been supported by:
-
-* CompatibleOne Project (French FUI project) [http://compatibleone.org/]
-* Easi-Clouds (ITEA2 project) [http://easi-clouds.eu/]
-
-9. Credits
-=================
-
-This work has been based on:
-
-* Emilien Macchi's Folsom guide [https://github.com/EmilienM/openstack-folsom-guide]
-* OpenStack Documentation [http://docs.openstack.org/trunk/openstack-compute/install/apt/content/]
-* OpenStack Quantum Install [http://docs.openstack.org/trunk/openstack-network/admin/content/ch_install.html]
-
-10. To do
-=======
-
-This guide is just a startup. Your suggestions are always welcomed.
-
-Some of this guide's needs might be:
-
-* Define more Quantum configurations to cover all usecases possible see `here <http://docs.openstack.org/trunk/openstack-network/admin/content/use_cases.html>`_. 
-
-
-
-* Define more Quantum configurations to cover all usecases possible see `here <http://docs.openstack.org/trunk/openstack-network/admin/content/use_cases.html>`_. 
-
-
+  quantum floatingip-create --port_id <port_id> <ext_net_id>
+  **备注：** 目前horizon不支持quantum的floatingip操作
 
 

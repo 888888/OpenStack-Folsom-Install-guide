@@ -15,10 +15,10 @@ HOST_IP=100.10.10.51
 EXT_HOST_IP=192.168.100.51
 
 # MySQL definitions
-MYSQL_USER=keystoneUser
+MYSQL_USER=root
 MYSQL_DATABASE=keystone
 MYSQL_HOST=$HOST_IP
-MYSQL_PASSWORD=keystonePass
+MYSQL_PASSWORD=password
 
 # Keystone definitions
 KEYSTONE_REGION=RegionOne
@@ -99,13 +99,6 @@ if [ -n "$missing_args" ]; then
   exit 1
 fi
  
-keystone service-create --name nova --type compute --description 'OpenStack Compute Service'
-keystone service-create --name cinder --type volume --description 'OpenStack Volume Service'
-keystone service-create --name glance --type image --description 'OpenStack Image Service'
-keystone service-create --name keystone --type identity --description 'OpenStack Identity'
-keystone service-create --name ec2 --type ec2 --description 'OpenStack EC2 service'
-keystone service-create --name quantum --type network --description 'OpenStack Networking service'
-
 create_endpoint () {
   case $1 in
     compute)
